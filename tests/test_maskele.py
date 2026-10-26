@@ -13,6 +13,8 @@ from src.maskele import maskele
     ("IBAN: TR33 0006 1005 1978 6457 8413 26", "IBAN: [IBAN]"),
     ("Kart: 4111 1111 1111 1111", "Kart: [KART]"),
     ("TC: 12345678901", "TC: [TC]"),
+    ("Call 08452810075 now", "Call [TEL] now"),
+    ("Ring 09061701461 from landline", "Ring [TEL] from landline"),
     ("Doğrulama kodunuz: 482915", "Doğrulama kodunuz: [KOD]"),
     ("Your code is 123456", "Your code is [KOD]"),
 ])
