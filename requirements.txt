@@ -1,0 +1,7 @@
+# Veri ve klasik ML (hafta 1)
+pandas
+numpy
+scikit-learn
+xgboost
+matplotlib
+pytest

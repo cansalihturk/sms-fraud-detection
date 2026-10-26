@@ -1,0 +1,9 @@
+# Sistem ve MLOps (hafta 2). BERTurk/XLM-R eğitimi için Colab kullanılır.
+-r requirements.txt
+fastapi
+uvicorn
+python-telegram-bot
+ollama
+shap
+mlflow
+evidently
