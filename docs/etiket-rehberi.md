@@ -126,8 +126,29 @@ kappa = cohen_kappa_score(df["etiket"], df["ikinci_etiket"])
 
 5. Rapora kaç mesajın iki kişi tarafından etiketlendiğini, uyum oranını ve kaç mesajın belirsiz kaldığını yaz. Bu, veri yönetişimi bölümünün kanıtı olur.
 
+## 8. Netleştirilen kurallar (26 Ekim 2026, ilk 50 sonrası)
+
+**Ücretli SMS hizmetleri ve yem.** Mesaj bir yem kullanıyorsa (cinsel ya da flört içerik, çekiliş, "kazandınız", arkadaş daveti) ve ücretli numaraya yönlendiriyorsa → **dolandırıcılık**, ücret yazsa bile. Yem yoksa, sade bir hizmet ya da abonelik bildirimiyse → **reklam**.
+
+**Kişisel mesaj.** Arkadaş tonu varsa ("kanka", "abi") marka adı geçse bile → **meşru**.
+
+**Gerçek kampanya.** Tanınan bir marka, şartları belli kampanya, hediye ya da puan içerse bile → **reklam**. "Ödül" kelimesi tek başına dolandırıcılık demek değildir; mesaj aldatıcı bir şey istiyor mu diye bak.
+
+**`belirsiz` tanımı.** Rehber iki sınıf arasında kalıyorsa ve gerçekten emin değilsen `e`. "Biraz tereddüt ettim" `h`'dir. `belirsiz` satırında `etiket` boş bırakılmaz: en iyi tahmin yazılır.
+
+**`tur` sütunu.** Mesajın konusunu gösterir, sınıftan bağımsızdır: ödül/hediye/puan geçiyorsa `ödül`; ayrıca banka, kredi, kargo, devlet, bahis, diğer. İki tür birden uyarsa sektör önce (banka, kredi, kargo, devlet), sonra ödül, sonra bahis, sonra diğer. Meşru satırlarda `tur` boş kalır. `tur` model girdisi olarak kullanılmaz, sadece analiz içindir.
+
+**`belirsiz` ve `sms_degil`** hiç boş bırakılmaz: `h` ya da `e`.
+
+**Elle maskeleme.** Otomatik script isim, adres ve boşluklu telefon numaralarını yakalamaz. Etiketlerken bunları kendin maskele: `[İSİM]`, `[ADRES]`, `[TEL]`. Mesajın geri kalanına dokunma.
+
+**Liste değerleri** küçük harf ve virgülden sonra boşluksuz yazılır.
+
+**İlk 50 sonucu.** İki kişi bağımsız etiketledi: 3 sınıfta uyum %94, Cohen kappa 0.91, ikili uyum %98. Uyuşmazlıklar ücretli SMS ve kişisel mesaj sınırında çıktı, yukarıdaki kurallar bunlardan türetildi.
+
 ## Değişiklik günlüğü
 
 | Tarih | Değişiklik | Kim |
 |---|---|---|
 | 2026-10-24 | İlk sürüm | |
+| 2026-10-26 | Ücretli SMS yemi, kişisel mesaj, gerçek kampanya, belirsiz tanımı, tur ve elle maskeleme kuralları eklendi | Esra, Salih |
