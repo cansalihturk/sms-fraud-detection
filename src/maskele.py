@@ -25,9 +25,11 @@ IBAN = re.compile(r"\bTR\d{2}(?:\s?\d{4}){5}\s?\d{2}\b", re.IGNORECASE)
 TEL = re.compile(
     r"(?<!\d)(?:\+?90[\s-]?)?0?5\d{2}[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}(?!\d)"
     r"|(?<!\d)444[\s-]?\d[\s-]?\d{3}(?!\d)"
+    r"|(?<!\d)0\d{10}(?!\d)"  # 0 ile başlayan 11 haneli (ör. İngiltere 0800/0906...)
 )
+
 KART = re.compile(r"(?<!\d)(?:\d{4}[\s-]?){3}\d{1,4}(?!\d)")
-TC = re.compile(r"(?<!\d)\d{11}(?!\d)")
+TC = re.compile(r"(?<!\d)[1-9]\d{10}(?!\d)")
 KOD = re.compile(
     r"(?i)\b(kod\w*|şifre\w*|sifre\w*|code|pin|otp)(\s*(?:[:=]|\bis\b)?\s*)(\d{4,8})(?!\d)"
 )

@@ -3,7 +3,8 @@
 Çalıştırma (repo kökünden):
     python -m src.hazirla_veri
 
-Girdi : data/raw/turkishsms.csv, data/raw/uci_sms.csv
+Girdi : data/raw/turkishsms.csv (train), data/raw/uci_sms.csv,
+        data/raw/turkishsms_val.csv (validation, varsa; kendi bölmemizi yapacağız)
 Çıktı : data/processed/havuz.csv              (tüm maskeli mesajlar, etiketsiz)
         data/processed/kaynak_etiketleri.csv  (id -> veri setinin kendi etiketi)
         data/etiketleme/ilk50_esra.csv, ilk50_salih.csv  (aynı 50 mesaj, etiketsiz)
@@ -43,7 +44,8 @@ def ilk50_sec(df):
     """25 TR + 25 EN; her dilde 13 spam + 12 diğer. Aynı mesajlar iki kişiye gider."""
     parcalar = []
     for dil in ("tr", "en"):
-        d = df[df["dil"] == dil]
+        # ek (validation) satırlar ilk 50'ye girmez: ilk 50 hep aynı kalsın
+        d = df[(df["dil"] == dil) & (~df["ek"])]
         parcalar.append(d[d["kaynak_etiket"] == "spam"].sample(13, random_state=TOHUM))
         parcalar.append(d[d["kaynak_etiket"] != "spam"].sample(12, random_state=TOHUM))
     return pd.concat(parcalar).sample(frac=1, random_state=TOHUM)  # karıştır
@@ -51,8 +53,17 @@ def ilk50_sec(df):
 
 def main():
     ham = Path("data/raw")
-    df = pd.concat([turkce_oku(ham / "turkishsms.csv"),
-                    ingilizce_oku(ham / "uci_sms.csv")], ignore_index=True)
+    tr = turkce_oku(ham / "turkishsms.csv")
+    en = ingilizce_oku(ham / "uci_sms.csv")
+    parcalar = [tr, en]
+    val_yol = ham / "turkishsms_val.csv"
+    if val_yol.exists():
+        parcalar.append(turkce_oku(val_yol))  # sona eklenir: mevcut id'ler değişmez
+    for p in parcalar:
+        p["ek"] = False
+    if len(parcalar) == 3:
+        parcalar[2]["ek"] = True
+    df = pd.concat(parcalar, ignore_index=True)
 
     df["mesaj"] = df["mesaj"].map(maskele)
     onceki = len(df)
