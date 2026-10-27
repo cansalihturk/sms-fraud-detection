@@ -2,8 +2,10 @@
 
 Çalıştırma (repo kökünden):
     python -m src.ortak_uyum spam_esra_etiketli.csv spam_salih_etiketli.csv
+    python -m src.ortak_uyum mesru_esra_etiketli.csv mesru_salih_etiketli.csv mesru
 
 Ortak id listesi: data/etiketleme/spam_ortak_idler.csv
+(sondaki "mesru" verilirse mesru_ortak_idler.csv)
 (İki dosyada da olmayan mesajlar tek kişiye gitti, karşılaştırılamaz.)
 """
 import sys
@@ -14,11 +16,10 @@ import pandas as pd
 
 from src.uyum import main as uyum_main
 
-ORTAK = Path("data/etiketleme/spam_ortak_idler.csv")
 
 
-def main(yol1, yol2):
-    ortak = set(pd.read_csv(ORTAK)["id"])
+def main(yol1, yol2, mod="spam"):
+    ortak = set(pd.read_csv(f"data/etiketleme/{mod}_ortak_idler.csv")["id"])
     with tempfile.TemporaryDirectory() as tmp:
         yollar = []
         for i, yol in enumerate((yol1, yol2), start=1):
@@ -34,6 +35,6 @@ def main(yol1, yol2):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        sys.exit("Kullanım: python -m src.ortak_uyum esra_etiketli.csv salih_etiketli.csv")
-    main(sys.argv[1], sys.argv[2])
+    if len(sys.argv) not in (3, 4):
+        sys.exit("Kullanım: python -m src.ortak_uyum esra_etiketli.csv salih_etiketli.csv [mesru]")
+    main(sys.argv[1], sys.argv[2], "mesru" if len(sys.argv) == 4 else "spam")
