@@ -67,6 +67,10 @@ def main():
 
     df["mesaj"] = df["mesaj"].map(maskele)
     onceki = len(df)
+    grup = df.groupby(["mesaj", "dil"])["kaynak_etiket"].nunique()
+    celisen = grup[grup > 1]
+    print(f"Aynı metin, farklı etiket: {len(celisen)}")
+    
     df = df.drop_duplicates(subset=["mesaj", "dil"]).reset_index(drop=True)
     print(f"Tekrar eden {onceki - len(df)} mesaj silindi, kalan: {len(df)}")
     df.insert(0, "id", range(1, len(df) + 1))
