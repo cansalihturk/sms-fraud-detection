@@ -43,6 +43,9 @@ docs/            etiket rehberi, Model Card, risk kaydı
 - Gerçek test seti temiz tutulur; saldırgan ve sentetik mesajlar ona karışmaz.
 - Her turda yanlış alarm da ölçülür.
 - Telegram botu gelen mesajları kaydetmez.
+- Ana deney ikili: spam (reklam + dolandırıcılık) / meşru. Gerçek Türkçe dolandırıcılık çok az (7), 3 sınıflı ölçüm anlamsız olurdu.
+- Dolandırıcılık ayrı ek deney: kural motoru + sentetik/çevrilmiş örnekler (sadece train'e), gerçek 7 mesajla test edilir.
+- Bölme: grup duyarlı (benzerlik eşiği 0.60), %85 train / %15 test, test kilitli. Model seçimi train içinde 5 katlı grup duyarlı CV ile (`fold` sütunu).
 
 ## Çalışma kuralları
 - Herkes kendi dalında çalışır (veri-esra, model-salih), main'e doğrudan yazılmaz.
