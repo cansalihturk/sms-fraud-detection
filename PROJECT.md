@@ -47,6 +47,29 @@ docs/            etiket rehberi, Model Card, risk kaydı
 - Dolandırıcılık ayrı ek deney: kural motoru + sentetik/çevrilmiş örnekler (sadece train'e), gerçek 7 mesajla test edilir.
 - Bölme: grup duyarlı (benzerlik eşiği 0.60), %85 train / %15 test, test kilitli. Model seçimi train içinde 5 katlı grup duyarlı CV ile (`fold` sütunu).
 
+## Deney protokolü (adil karşılaştırma için herkes aynısını uygular)
+
+**Veri**
+- Türkçe etiketli veri: 775 mesaj (`sms_degil=e` olan 3 mesaj baştan çıkarıldı).
+- Bölme: `python -m src.bol` (grup duyarlı, eşik 0.60, tohum 42). Train %85, test %15.
+- Eğitimde `belirsiz=e` olan 8 mesaj çıkarılır (train 651). Test'te tutulur (116).
+- Test seti kilitli: model ve ayar seçiminde kullanılmaz, en sonda her model için tek sefer ölçülür.
+
+**Model seçimi**
+- Train içinde 5 katlı grup duyarlı CV (`fold` sütunu 0-4). GridSearchCV'de `PredefinedSplit` kullanılır.
+- Ana ölçü: spam sınıfı için F1. Yanında kesinlik ve duyarlılık raporlanır.
+- Test'te tek hata ~1 puan oynatır (116 mesaj). 2 puandan küçük farklar gürültü sayılır.
+
+**Özellikler**
+- Klasik modellerde (NB, SVM, LR, XGBoost) her model iki özellikle denenir ve tabloda "model × özellik" olarak gösterilir:
+  - kelime TF-IDF
+  - harf parçası TF-IDF (char_wb, 3-5 harf)
+- Metin temizliği: `src.temizle.temizle` (Türkçe küçük harf, rakam → 0, maskeler korunur).
+- BERTurk / XLM-R için temizlik uygulanmaz, kendi tokenizer'ları kullanılır.
+
+**Dolandırıcılık**
+- Ana deney ikili (spam / meşru). Dolandırıcılık ayrı ek deney.
+
 ## Çalışma kuralları
 - Herkes kendi dalında çalışır (veri-esra, model-salih), main'e doğrudan yazılmaz.
 - Her PR'ı diğer kişi inceler ve birleştirir.
