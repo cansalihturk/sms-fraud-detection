@@ -225,3 +225,5 @@ data/processed/
 data/etiketleme/
 *_etiketli.csv
 data/external/
+models/
+*.joblib
