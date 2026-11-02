@@ -5,3 +5,5 @@ scikit-learn
 xgboost
 matplotlib
 pytest
+# Deney takibi (hafta 2)
+mlflow
