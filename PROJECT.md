@@ -51,6 +51,8 @@ docs/            etiket rehberi, Model Card, risk kaydı
 - Öneri (Esra ile karar verilecek): bot, karar skoru sıfıra yakınsa (|skor| < 0.3) "emin değilim, dikkatli ol" der.
 - Derin öğrenme: Keras 3, PyTorch altyapısıyla (`KERAS_BACKEND=torch`). TensorFlow Python 3.14'ü desteklemiyor (en son 2.21, Python 3.10-3.13). Keras kodu aynı kalır.
 - Deney takibi: MLflow, `sqlite:///mlflow.db` (repo kökü, gitignore'da), deney adı `tr_ikili`. Parametreler elle yazılmaz, modelden (`get_params`) ya da tek bir ayar sözlüğünden okunur.
+- GPU: `pip install torch --index-url https://download.pytorch.org/whl/cu130` (Python 3.14, sürücü CUDA 13.0+). PyPI'daki Windows torch paketi sadece CPU'lu. Transformer modelleri için `transformers`.
+- XLM-R / BERTurk ayarları (başlangıç): max_len 80 (en uzun mesaj 71 parça), batch 16, lr 2e-5, 4 epoch, warmup %10, weight decay 0.01, bfloat16. Her fold'da taze model.
 
 ## Deney protokolü (adil karşılaştırma için herkes aynısını uygular)
 
@@ -114,3 +116,17 @@ Spam F1. Aynı protokol (5 katlı `fold` CV, test tek bakış).
 - Ezber kontrolü: SVM ve MLP'de train F1 1.000, CV ile fark ~3 puan. Ezber var ama genellemeyi bozmuyor.
 - BiLSTM fold'lar arasında en kararsız model (fold 2: 0.894). Kelime seviyesinde sözlük küçük (~1070 kelime); gündelik mesajlarda kelimelerin çoğu "bilinmeyen" oluyor. Test'te yanlış alarm yok ama 3 spam kaçırıyor: dolandırıcılık için yanlış yönde hata.
 - `analyzer="char"` (kelime sınırını aşan parçalar) `char_wb`'den kötü: 0.965 vs 0.971.
+### Gün 7 (devam ediyor): XLM-R (Salih)
+
+| Model | CV | fold 0 | fold 1 | fold 2 | fold 3 | fold 4 |
+|---|---|---|---|---|---|---|
+| XLM-R base | 0.961 | 0.969 | 0.976 | 0.916 | 0.967 | 0.975 |
+
+- 278M parametreli çok dilli model de SVM / MLP / BiLSTM ile aynı bölgede (0.96-0.97). Bu veri için tavan bu civarda; kalan hatalar modelden çok veriden kaynaklanıyor.
+- Tokenizer bilinmeyen kelime üretmiyor ("gelcekmsn" → gel|cek|ms|n), ama harf oyununa açık: "b3dava" → b|3|dava ("dava").
+- **CV hata analizi (out-of-fold, test'e bakılmadı):** 25 hatanın ~20'si kurumsal meşru mesaj (fatura hatırlatma, banka bildirimi, PNR, operatör), %98 güvenle spam deniyor. Model "resmi/kurumsal dil = spam" öğrenmiş, çünkü train'deki spam'in neredeyse tamamı kurumsal reklam, meşru'nun çoğu gündelik sohbet.
+- Fold 2'nin her modelde zor çıkması bu yüzden: aynı fatura şablonları grup duyarlı bölmeyle o fold'da toplanmış. Bölme işini yapıyor, rastgele bölme bu zayıflığı gizlerdi.
+- Kaçan banka taklidi: id 44 ("Finansbank İnternet Şubesi şifreniz blokelenmi...", olasılık 0.43).
+- Resmi uyarı mesajları (390, 575) dolandırıcılık kelimeleri içerdiği için spam deniyor.
+- Etiketi tartışmalı (kör denetime): 653, 305 (kampanya içeriyor, meşru etiketli).
+- **Sonuç:** Asıl zorluk, gerçek kurumsal bildirim ile onu taklit eden dolandırıcılığı ayırmak. Dolandırıcılık ek deneyinde sentetik veriye sadece dolandırıcılık değil, gerçek kurumsal bildirimler de (hard negative) eklenmeli.
