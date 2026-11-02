@@ -46,6 +46,11 @@ docs/            etiket rehberi, Model Card, risk kaydı
 - Ana deney ikili: spam (reklam + dolandırıcılık) / meşru. Gerçek Türkçe dolandırıcılık çok az (7), 3 sınıflı ölçüm anlamsız olurdu.
 - Dolandırıcılık ayrı ek deney: kural motoru + sentetik/çevrilmiş örnekler (sadece train'e), gerçek 7 mesajla test edilir.
 - Bölme: grup duyarlı (benzerlik eşiği 0.60), %85 train / %15 test, test kilitli. Model seçimi train içinde 5 katlı grup duyarlı CV ile (`fold` sütunu).
+- Canlı tahmin sırası: `maskele` → model. `temizle` pipeline'ın içinde, ayrıca çağrılmaz. Maskelenmemiş mesaj modele verilmez (eğitimde gerçek link/numara hiç görülmedi).
+- Kaydedilen modeller `src.temizle`'yi adresiyle taşır; yüklendikleri yerde `src` import edilebilir olmalı (API repo kökünden çalışır).
+- Öneri (Esra ile karar verilecek): bot, karar skoru sıfıra yakınsa (|skor| < 0.3) "emin değilim, dikkatli ol" der.
+- Derin öğrenme: Keras 3, PyTorch altyapısıyla (`KERAS_BACKEND=torch`). TensorFlow Python 3.14'ü desteklemiyor (en son 2.21, Python 3.10-3.13). Keras kodu aynı kalır.
+- Deney takibi: MLflow, `sqlite:///mlflow.db` (repo kökü, gitignore'da), deney adı `tr_ikili`. Parametreler elle yazılmaz, modelden (`get_params`) ya da tek bir ayar sözlüğünden okunur.
 
 ## Deney protokolü (adil karşılaştırma için herkes aynısını uygular)
 
@@ -78,3 +83,34 @@ docs/            etiket rehberi, Model Card, risk kaydı
 - Her Claude oturumu "önce PROJECT.md'yi oku" diye başlar.
 - Gün başında 5 dakikalık konuşma: dün, bugün, takıldığım şey.
 - Kırmızı çizgiler: Gün 3 veri, Gün 7 karşılaştırma tablosu, Gün 10 döngü grafiği.
+
+## Sonuçlar
+
+### Gün 5: NB ve SVM (Salih)
+Spam F1. CV = 5 katlı (`fold`), test = 116 mesaj, tek bakış.
+
+| Model | Özellik | Ayar | CV | Test F1 | Test P | Test R |
+|---|---|---|---|---|---|---|
+| NB | kelime | alpha 0.003 | 0.931 ± 0.025 | 0.955 | 0.930 | 0.981 |
+| SVM | kelime | C 10 | 0.961 ± 0.018 | 0.972 | 0.981 | 0.963 |
+| NB | harf 3-5 | alpha 0.1 | 0.952 ± 0.018 | 0.973 | 0.947 | 1.000 |
+| SVM | harf 3-5 | C 1 | 0.971 ± 0.014 | 0.981 | 0.981 | 0.981 |
+
+- Seçilen: SVM harf. SVM kelime ve NB harf ile farkı 2 puandan küçük (gürültü); seçim gerekçesi skor değil, yeni kelimelere ve harf oyunlarına dayanıklılık.
+- Kenarda kalan ayarlar (NB kelime alpha, SVM kelime C) genişletilmiş ızgarayla kontrol edildi, skor değişmedi.
+- Etiket kontrolü önerisi: test id 290, 661, 5869 neredeyse tüm modellerde hata ve kaynak etiketle çelişiyor.
+- Sınır: spam sınıfının neredeyse tamamı reklam. Elle yazılmış banka taklidi mesaj (reklam kelimesi yok) skor +0.22 ile kıl payı yakalandı. Dolandırıcılık ek deneyi bu yüzden gerekli.
+- Not: protokol okunmadan önce test setine keşif amaçlı bakıldı (protokol dışı ayarlarla); raporlanan sonuçlar protokole uygun koşudan.
+### Gün 6: MLP ve BiLSTM (Salih)
+Spam F1. Aynı protokol (5 katlı `fold` CV, test tek bakış).
+
+| Model | Özellik | Parametre sayısı | CV | Test F1 | Test P | Test R |
+|---|---|---|---|---|---|---|
+| SVM (Gün 5) | harf 3-5 | ~25 bin | 0.971 ± 0.014 | 0.981 | 0.981 | 0.981 |
+| MLP (64 nöron, alpha 1e-3) | harf 3-5, min_df=2 | ~800 bin | 0.974 | 0.981 | 0.981 | 0.981 |
+| BiLSTM (embed 32, lstm 32) | kelime, min_df=2 | 51 bin | 0.962 ± 0.036 | 0.971 | 1.000 | 0.944 |
+
+- Üç model arasındaki farklar 2 puandan küçük (gürültü). Kombinasyon öğrenen MLP ve sırayı okuyan BiLSTM, doğrusal SVM'i geçemedi. Canlı sistem için SVM kalıyor (aynı başarı, daha küçük ve açıklanabilir).
+- Ezber kontrolü: SVM ve MLP'de train F1 1.000, CV ile fark ~3 puan. Ezber var ama genellemeyi bozmuyor.
+- BiLSTM fold'lar arasında en kararsız model (fold 2: 0.894). Kelime seviyesinde sözlük küçük (~1070 kelime); gündelik mesajlarda kelimelerin çoğu "bilinmeyen" oluyor. Test'te yanlış alarm yok ama 3 spam kaçırıyor: dolandırıcılık için yanlış yönde hata.
+- `analyzer="char"` (kelime sınırını aşan parçalar) `char_wb`'den kötü: 0.965 vs 0.971.
