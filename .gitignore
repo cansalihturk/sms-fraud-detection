@@ -220,9 +220,15 @@ __marimo__/
 .streamlit/secrets.toml
 # Maskelenmemiş veri repoya girmez
 data/raw/
+# Modeller (koddan yeniden üretilir)
+models/
+*.joblib
+
+# MLflow yerel kayıtları
+mlruns/
+mlartifacts/
+mlflow.db
 # Etiketli ve islenmis veri (lisans belirsiz, git'e girmez)
 data/processed/
 data/etiketleme/
 *_etiketli.csv
-models/
-*.joblib
