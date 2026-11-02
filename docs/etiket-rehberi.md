@@ -144,6 +144,14 @@ kappa = cohen_kappa_score(df["etiket"], df["ikinci_etiket"])
 
 **Liste değerleri** küçük harf ve virgülden sonra boşluksuz yazılır.
 
+**Bilgilendirme mesajları.** Bir şey satmaya, abone etmeye ya da kampanyaya çekmeye çalışmayan, sadece bilgi veren, uyaran ya da bildirim yapan mesajlar (operatör/banka bildirimi, OTP şifresi, ekstre, kargo teslimi, servis aktif oldu bildirimi, dolandırıcılık uyarısı) → **meşru**. Bu satırlarda `tur` boş kalır.
+
+**Gerçek marka çekilişi/kampanyası.** Tanınan bir markanın çekiliş ya da ödüllü kampanyası, şüpheli numara ya da kişisel bilgi isteği yoksa → **reklam** (dolandırıcılık değil).
+
+**Etiket metne göre verilir.** Mesajın dışında bir araştırma (numarayı internette arama gibi) yapılmaz, çünkü model sadece metni görür.
+
+**`banka` ve `kredi` farkı.** Asıl konu borç verme (ihtiyaç kredisi, anında kredi) → `kredi`. Bankanın kartı, puanı, havalesi, otomatik ödemesi ya da internet şubesi → `banka`. Kart sadece ek avantajsa (örneğin mağaza indirimi) ya da operatör kampanyasıysa → `diğer`.
+
 **İlk 50 sonucu.** İki kişi bağımsız etiketledi: 3 sınıfta uyum %94, Cohen kappa 0.91, ikili uyum %98. Uyuşmazlıklar ücretli SMS ve kişisel mesaj sınırında çıktı, yukarıdaki kurallar bunlardan türetildi.
 
 ## Değişiklik günlüğü
@@ -152,3 +160,4 @@ kappa = cohen_kappa_score(df["etiket"], df["ikinci_etiket"])
 |---|---|---|
 | 2026-10-24 | İlk sürüm | |
 | 2026-10-26 | Ücretli SMS yemi, kişisel mesaj, gerçek kampanya, belirsiz tanımı, tur ve elle maskeleme kuralları eklendi | Esra, Salih |
+| 2026-10-27 | Bilgilendirme, marka çekilişi, metne göre etiketleme ve tur önceliği kuralları eklendi | Esra, Salih |
