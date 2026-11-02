@@ -232,3 +232,4 @@ mlflow.db
 data/processed/
 data/etiketleme/
 *_etiketli.csv
+data/external/
