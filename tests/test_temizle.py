@@ -1,6 +1,6 @@
 import pytest
 
-from src.temizle import temizle
+from src.temizle import Temizleyici, temizle
 
 
 @pytest.mark.parametrize("girdi,beklenen", [
@@ -31,3 +31,8 @@ def test_ascii_secenegi():
 
 def test_string_olmayan_deger_aynen_doner():
     assert temizle(None) is None
+
+
+def test_temizleyici_listeyi_temizler():
+    assert Temizleyici().transform(["İNDİRİM 50", "[LINK] Ara"]) == ["indirim 00", "[LINK] ara"]
+    assert Temizleyici(ascii=True).transform(["ÇİĞ"]) == ["cig"]
