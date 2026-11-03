@@ -161,3 +161,15 @@ kappa = cohen_kappa_score(df["etiket"], df["ikinci_etiket"])
 | 2026-10-24 | İlk sürüm | |
 | 2026-10-26 | Ücretli SMS yemi, kişisel mesaj, gerçek kampanya, belirsiz tanımı, tur ve elle maskeleme kuralları eklendi | Esra, Salih |
 | 2026-10-27 | Bilgilendirme, marka çekilişi, metne göre etiketleme ve tur önceliği kuralları eklendi | Esra, Salih |
+
+## Ek kural: Siyasi çağrı ve kurum tanıtımı (zor test sırasında eklendi)
+
+Ürün ya da kampanya satmayan, kimseyi para/bilgi için aldatmayan, ama kişisel ya
+da işlemsel de olmayan mesajlar **`belirsiz`** etiketlenir ve eğitimde/ölçümde
+kullanılmaz. Örnekler:
+
+- Siyasi/parti çağrısı (miting, aday çağrısı)
+- Kurum ya da vakıf tanıtımı (kutlama, yıl dönümü, tanıtım videosu)
+- Kamu programı duyurusu (ürün/hizmet satmayan, genel bilgilendirme)
+
+*Durum: öneri. Salih ile onaylandıktan sonra bu not "öneri" olmaktan çıkar.*
