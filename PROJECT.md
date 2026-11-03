@@ -130,3 +130,20 @@ Spam F1. Aynı protokol (5 katlı `fold` CV, test tek bakış).
 - Resmi uyarı mesajları (390, 575) dolandırıcılık kelimeleri içerdiği için spam deniyor.
 - Etiketi tartışmalı (kör denetime): 653, 305 (kampanya içeriyor, meşru etiketli).
 - **Sonuç:** Asıl zorluk, gerçek kurumsal bildirim ile onu taklit eden dolandırıcılığı ayırmak. Dolandırıcılık ek deneyinde sentetik veriye sadece dolandırıcılık değil, gerçek kurumsal bildirimler de (hard negative) eklenmeli.
+#### Zor test: gerçek kurumsal mesajlar (133 mesaj, 59 gönderici grubu)
+A = sadece tr_train ile eğitim. B = leave-one-sender-out (tr_train + diğer göndericiler). Gönderici adları büyük harfe çevrildi (NKOLAY / nkolay aynı grup). max_len 160 (33 mesaj 80 parçayı aşıyor; tr_train'de etkisi yok, en uzun 71). Eşik 0.5, bu sete bakılarak ayarlanmadı.
+> Not: Bu sayılar etiket düzeltmesinden **önceki** zor setle hesaplandı. Esra 30 ve 63'ü belirsize, Turkcell uygulama tanıtımını (23) reklama çevirdi. Yeni dosyayla tekrar ölçülecek.
+
+| Model | Yanlış alarm | Spam yakalama | Dolandırıcılık | P | R | F1 |
+|---|---|---|---|---|---|---|
+| SVM A (Esra) | 35/68 | 60/65 | | | | ~0.75 |
+| SVM B (Esra) | 11/68 | 60/65 | | | | ~0.88 |
+| XLM-R A | 42/68 | 58/65 | 5/11 | 0.58 | 0.89 | 0.70 |
+| XLM-R B | 11/68 | 59/65 | 7/11 | 0.84 | 0.91 | 0.87 |
+
+- Model büyüklüğü veri yanlılığını çözmüyor: XLM-R A, SVM A'dan daha fazla yanlış alarm veriyor. Kazanç modelden değil veriden geliyor (42 → 11).
+- **Tür değişimi (dikkatli yorum):** XLM-R B iş ilanı ve IBAN'lı bağış dolandırıcılıklarını yakalamaya başladı, ama iki sahte kargo mesajını kaybetti (id 46: 0.79 → 0.07). Bu iki mesaj neredeyse aynı metin, yani pratikte tek örnek. SVM B ise 11/11 yakalıyor ve kargoları kaybetmiyor (Esra). 11 dolandırıcılık mesajıyla kesin sonuç çıkarılamaz.
+- Sonuç: Sadece hard negative eklemek yetmez. Kurumsal taklit dolandırıcılık (**hard positive**: sahte kargo, sahte banka, sahte e-Devlet) birlikte eklenmeli.
+- Kalan yanlış alarmların çoğu eşiğe yakın (0.54-0.69). İnatçı olanlar kamu bilgilendirmeleri (AFAD, TTNET, Sağlık Bakanlığı) ve uygulama tanıtımı (Turkcell, 0.99).
+- Etiket önerileri (düzeltme listesine, birlikte onay): 30 ("0850 250 6702", metinden anlaşılamaz → belirsiz?), 63 (Yurtiçi şubede bekliyor: reklam mı dolandırıcılık mı?), 23 (Turkcell uygulama tanıtımı: meşru mu reklam mı?).
+- Tahminler: `data/external/xlmr_zor_tahmin.csv` (repoya girmez).
