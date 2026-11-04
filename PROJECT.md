@@ -42,6 +42,7 @@ docs/            etiket rehberi, Model Card, risk kaydı
 - Döngünün final testi, hiç görmediği ikinci bir saldırgan ile yapılır.
 - Gerçek test seti temiz tutulur; saldırgan ve sentetik mesajlar ona karışmaz.
 - Her turda yanlış alarm da ölçülür.
+- Döngü saldırganları yerel (Ollama): qwen3.5:9b, aya-expanse:8b; final saldırgan gemma4:e4b, döngüde hiç kullanılmaz. Yanlış alarm, eğitime girmeyen gerçek meşru kurumsal mesajlarda ölçülür; kıyas 3 tohumlu gürültü bandına göre yapılır.
 - Telegram botu gelen mesajları kaydetmez.
 - Ana deney ikili: spam (reklam + dolandırıcılık) / meşru. Gerçek Türkçe dolandırıcılık çok az (7), 3 sınıflı ölçüm anlamsız olurdu.
 - Dolandırıcılık ayrı ek deney: kural motoru + sentetik/çevrilmiş örnekler (sadece train'e), gerçek 7 mesajla test edilir.
@@ -192,3 +193,48 @@ G deneylerinde zor setle ortak göndericiler havuzdan çıkarıldı; zor setten 
 - "Emin değilim" bandı (0.30-0.70): tr_test'te 2/116 mesaj.
 - Akıl kontrolü: elle yazılmış kısa, aciliyetsiz sahte kargo mesajı p=0.44 (`bilinen-hatalar.md`, satır 2). Ayar yapılmadı; saldırgan döngüsünde tekrar ölçülecek.
 > **Gruplama düzeltmesi (E_v2):** Gönderici grupları ilk koşuda sadece büyük harf + baştaki/sondaki boşluk silinerek oluşturuldu; "NVI RANDEVU" (Salih) ile "NVIRANDEVU" (zor set) ayrı grup kaldı, NVIRANDEVU sınavdayken Salih'in bu göndericiden mesajı eğitimde kaldı. Düzeltilmiş gruplama (harf/rakam dışı her şey silinir, Esra'nın SVM protokolüyle aynı) ile E tekrar koşuldu (`python -m src.zor_deney E_v2`): yanlış alarm 7/67, spam 63/64, dolandırıcılık 10/10, P 0.900, R 0.984, **F1 0.940**. Fark tam olarak bir NVIRANDEVU mesajı (p=0.63). SVM ile karşılaştırmada **E_v2** kullanılır. B/D'de Salih'in verisi yok, etkilenmez; F'nin kararı değişmez (dolandırıcılık 9/10 < 10/10).
+### Gün 9: Saldırgan / savunmacı döngüsü, XLM-R (Salih)
+Saldırgan yerel LLM (Ollama) dolandırıcılık SMS'i yazar, savunmacı (E tarifiyle XLM-R) puanlar. Yakalanamayanlar ("kaçanlar") eğitime eklenir, savunmacı sıfırdan yeniden eğitilir, saldırgana yakalanan/kaçan örnekler geri bildirilir. 4 tur, turda 30 saldırı. Final: döngüde hiç kullanılmamış başka aileden saldırgan (gemma4:e4b). Eşik 0.5. Yanlış alarm, eğitime hiç girmeyen gerçek meşru kurumsal mesajlarda (Salih'in havuzu) ölçülür. Saldırı mesajları `data/external/dongu*/` (repoya girmez); grafik ve sayılar `docs/`.
+
+**v1 (atıldı):** saldırgan kaçan mesajları neredeyse aynen kopyaladı (sahte düşüş); uydurduğu maskeler ([OPERATÖR], [KURUM]) gerçek veride yok, kısayol oldu; yanlış alarm tek koşuda ölçüldü, gürültü bilinmiyordu.
+
+**v2 (`python -m src.dongu`):** saldırgan qwen3.5:9b. Düzeltmeler: yenilik filtresi (HashingVectorizer char_wb 3-5, benzerlik > 0.7 olan saldırı reddedilir), uydurma maskeler gerçek marka adına çevrilir, D0 üç tohumla (42/43/44) eğitilir → yanlış alarm gürültü bandı. Yanlış alarm seti: 318 havuz meşrusu.
+
+| Tur | Kaçma (qwen) | Yanlış alarm (yeniden eğitim sonrası, tohum 42) |
+|---|---|---|
+| 0 (D0) | – | %10.4 – %12.9 (3 tohum, bant) |
+| 1 | 15/30 = %50 | 43/318 = %13.5 |
+| 2 | 6/30 = %20 | 46/318 = %14.5 |
+| 3 | 25/30 = %83 | 62/318 = %19.5 |
+| 4 | 0/30 = %0 | yeniden eğitim yok |
+| Final (gemma4) | D0: %27 – %43 (3 tohum) → son: %7 (2/30, tek tohum) | |
+
+- Görülmemiş saldırgana karşı kaçma gürültünün çok üstünde düştü. Model qwen'in üslubunu değil, dolandırıcılığı öğrendi.
+- Bedeli: yanlış alarm bandın dışına çıktı (%19.5). Modele sadece "bu da dolandırıcılık" dendi, hiç "bu benziyor ama meşru" denmedi.
+- Saldırgan uyum sağladı: tur 3'te yeni taktik (uydurma kod "x9y7z5w3", belirsiz "teknik/sistem hatası"), %83 kaçtı; model öğrenince tur 4'te %0.
+- Gemma'nın son modelde kaçan 2 mesajı: maskelenmemiş kısa numaralı sahte kargo, IBAN'lı yardım isteği (p 0.23).
+- Bilinen hata 2 (sahte kargo) tohuma göre oynak: D0'da 0.44 / 0.90 / 0.84. Bu tür mesajda karar sağlam değil.
+
+**v3 (`python -m src.dongu_v3`):** iki değişiklik. (1) Meşru karşı ağırlık: 318 havuz meşrusu gönderici bazlı bölündü, 162 (38 gönderici) eğitime "meşru" olarak girer (D0 dahil), 156 (41 gönderici) sadece yanlış alarm ölçümünde; ortak gönderici yok (kodda kontrol). Hepsini eğitime koyup aynı sette ölçmek sızıntı olurdu. (2) İki saldırgan sırayla: qwen3.5:9b (tek turlar), aya-expanse:8b (çift turlar). Son savunmacı da üç tohum.
+Ön kayıtlı kriter (koşudan önce kodda): v3, v2'nin yerine ancak final kaçma ≤ %10 VE yanlış alarm ≤ %13 ise geçer (3 tohum ortalaması).
+
+| Tur | Saldırgan | Kaçma | Yanlış alarm (tohum 42) |
+|---|---|---|---|
+| 0 (D0) | – | – | %6.4 – %7.7 (3 tohum, bant) |
+| 1 | qwen | 19/30 = %63 | 6/156 |
+| 2 | aya | 11/30 = %37 | 18/156 |
+| 3 | qwen | 4/30 = %13 | 6/156 |
+| 4 | aya | 0/30 = %0 | yeniden eğitim yok |
+
+| | D0 (3 tohum) | Son savunmacı (3 tohum) |
+|---|---|---|
+| Gemma kaçma | %43 – %70 (ort. %53.3) | %13 – %23 (ort. %18.9) |
+| Yanlış alarm (156) | %6.4 – %7.7 | %3.8 – %8.3 (ort. %5.6) |
+
+- **Karar: RED** (kaçma %18.9 > %10). Döngü sonucu olarak v2 raporlanır, v3 karşılaştırma olarak.
+- Meşru karşı ağırlık yanlış alarm bedelini kaldırdı (son model bandın içinde). Turlarda kaçma düzenli indi (63 → 37 → 13 → 0), v2'deki tur 3 sıçraması yok.
+- **Ödünleşim:** v2 daha dayanıklı ama yanlış alarm bant dışı; v3 yanlış alarmda bedelsiz ama daha az dayanıklı. Dayanıklılık ile yanlış alarm arasında ayar düğmesi var, iki ucu da ölçüldü.
+- **Kriter hatası:** final gemma seti her koşuda yeniden üretildi. v3'ün seti belirgin şekilde daha zor (D0 kaçma %43–70, v2'de %27–43); mutlak %10 eşiği v2'nin %7'sine bakılarak, farklı bir sınav kâğıdı için konmuştu. Kriter sonuçtan sonra değiştirilmedi (HARKing olurdu).
+- **Ders:** final seti bir kez üretilip sabitlenir (`dongu_v3.py` artık `final_mesajlar.csv`'yi kaydedip yeniden kullanıyor) ve eşik göreli konur ("D0'a göre en az X puan düşüş").
+- Tek tohumlu tur ölçümleri oynak (v3 tur 2: 18/156, sonra 6/156). Aynı veri ve aynı tohumla bile GPU'da sonuç birkaç mesaj oynayabiliyor. Yorum sadece 3 tohumlu bantlardan yapılır.
+- **Sınırlar:** turda 30 saldırı (1 mesaj = 3.3 puan); saldırganlar 8-9B yerel modeller; yanlış alarm tek kişinin gelen kutusunda ölçüldü. Döngü modelleri son model değil; son model E.

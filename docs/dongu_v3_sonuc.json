@@ -1,0 +1,86 @@
+{
+  "saldirganlar": [
+    "qwen3.5:9b",
+    "aya-expanse:8b"
+  ],
+  "mesru_egitim": 162,
+  "mesru_olcum": 156,
+  "turlar": [
+    {
+      "tur": 0,
+      "saldirgan": null,
+      "kacma": null,
+      "yanlis_alarm": 0.0641025641025641,
+      "bilinen_1": 0.09268777817487717,
+      "bilinen_2": 0.87364661693573,
+      "eklenen": 0
+    },
+    {
+      "tur": 1,
+      "saldirgan": "qwen3.5:9b",
+      "kacma": 0.6333333333333333,
+      "yanlis_alarm": 0.038461538461538464,
+      "bilinen_1": 0.32380759716033936,
+      "bilinen_2": 0.4462534189224243,
+      "eklenen": 19
+    },
+    {
+      "tur": 2,
+      "saldirgan": "aya-expanse:8b",
+      "kacma": 0.36666666666666664,
+      "yanlis_alarm": 0.11538461538461539,
+      "bilinen_1": 0.022116590291261673,
+      "bilinen_2": 0.9362850189208984,
+      "eklenen": 30
+    },
+    {
+      "tur": 3,
+      "saldirgan": "qwen3.5:9b",
+      "kacma": 0.13333333333333333,
+      "yanlis_alarm": 0.038461538461538464,
+      "bilinen_1": 0.29624688625335693,
+      "bilinen_2": 0.7641884088516235,
+      "eklenen": 34
+    },
+    {
+      "tur": 4,
+      "saldirgan": "aya-expanse:8b",
+      "kacma": 0.0,
+      "yanlis_alarm": 0.038461538461538464,
+      "bilinen_1": 0.29624688625335693,
+      "bilinen_2": 0.7641884088516235,
+      "eklenen": 34
+    }
+  ],
+  "final_saldirgan": "gemma4:e4b",
+  "final_adet": 30,
+  "final_kacma_D0": {
+    "ort": 0.5333333333333333,
+    "min": 0.43333333333333335,
+    "max": 0.7
+  },
+  "final_kacma_son": {
+    "ort": 0.18888888888888888,
+    "min": 0.13333333333333333,
+    "max": 0.23333333333333334
+  },
+  "yanlis_alarm_D0": {
+    "ort": 0.06837606837606837,
+    "min": 0.0641025641025641,
+    "max": 0.07692307692307693
+  },
+  "yanlis_alarm_son": {
+    "ort": 0.05555555555555556,
+    "min": 0.038461538461538464,
+    "max": 0.08333333333333333
+  },
+  "kriter": {
+    "final_kacma_max": 0.1,
+    "yanlis_alarm_max": 0.13
+  },
+  "kabul": false,
+  "ayar": {
+    "tur": 4,
+    "adet": 30
+  }
+}
