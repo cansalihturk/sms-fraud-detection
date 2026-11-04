@@ -182,3 +182,12 @@ G deneylerinde zor setle ortak göndericiler havuzdan çıkarıldı; zor setten 
 - **Fazla veri:** şablon tekrarı atılmış sınırsız havuz (842) > göndericide ≤40 sınırlı havuz (738). Tekrarlar atıldıktan sonra daha fazla veri daha iyi.
 - **Son model E:** F (E + havuz) ile farkı tek yanlış alarm ve tek dolandırıcılık mesajı, F1 farkı 1.7 puan (gürültü). Önceden konulan ölçüte göre E.
 - **Sınırlar:** zor sette 10 dolandırıcılık var, tek mesaj 10 puan oynatıyor. Havuz tek kişinin gelen kutusu (bankaları, operatörü). Salih'in 58 mesajının etiketleri Claude önerisi, Salih tek tek kontrol etti.
+**Son model (`models/xlmr_e`, `python -m src.son_model`):** E tarifi, verinin tamamı (936 mesaj), tek eğitim. Künye: `models/xlmr_e/kunye.json`.
+
+**Kilitli tr_test, tek bakış (`python -m src.test_son_model`):** F1 0.953, P 0.962, R 0.944. Yanlış alarm 2/62, kaçan spam 3/54.
+- Gün 5 SVM harfin (0.981) 2.8 puan gerisinde: gerçek düşüş.
+- 5 hatanın 3'ü Gün 5'ten beri tüm modellerin yanıldığı tartışmalı etiketler (290, 661, 5869).
+- Gerçek hata 594 (banka dilinde kredi kartı limit teklifi, p=0.05) ve 393 (Turkcell ücretli servis, p=0.40).
+- **Ödünleşim:** son model "kurumsal dil = spam" kısayolunu bıraktı. Zor sette (gerçek kurumsal SMS) yanlış alarm 41 → 6 düştü, karşılığında tr_test'te (2013 SMS) banka diliyle yazılmış reklamlar kaçabiliyor. Botun gerçek kullanımı zor sete daha yakın olduğu için bu ödünleşim kabul edildi.
+- "Emin değilim" bandı (0.30-0.70): tr_test'te 2/116 mesaj.
+- Akıl kontrolü: elle yazılmış kısa, aciliyetsiz sahte kargo mesajı p=0.44 (`bilinen-hatalar.md`, satır 2). Ayar yapılmadı; saldırgan döngüsünde tekrar ölçülecek.
