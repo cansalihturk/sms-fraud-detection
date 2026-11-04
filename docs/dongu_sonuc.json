@@ -1,0 +1,60 @@
+{
+  "saldirgan": "qwen3.5:9b",
+  "turlar": [
+    {
+      "tur": 0,
+      "kacma": null,
+      "yanlis_alarm": 0.1289308176100629,
+      "bilinen_1": 0.05665242671966553,
+      "bilinen_2": 0.8392075896263123,
+      "eklenen": 0
+    },
+    {
+      "tur": 1,
+      "kacma": 0.5,
+      "yanlis_alarm": 0.13522012578616352,
+      "bilinen_1": 0.22644132375717163,
+      "bilinen_2": 0.571647047996521,
+      "eklenen": 15
+    },
+    {
+      "tur": 2,
+      "kacma": 0.2,
+      "yanlis_alarm": 0.14465408805031446,
+      "bilinen_1": 0.10594827681779861,
+      "bilinen_2": 0.5083000063896179,
+      "eklenen": 21
+    },
+    {
+      "tur": 3,
+      "kacma": 0.8333333333333334,
+      "yanlis_alarm": 0.1949685534591195,
+      "bilinen_1": 0.3306873142719269,
+      "bilinen_2": 0.7364006042480469,
+      "eklenen": 46
+    },
+    {
+      "tur": 4,
+      "kacma": 0.0,
+      "yanlis_alarm": 0.1949685534591195,
+      "bilinen_1": 0.3306873142719269,
+      "bilinen_2": 0.7364006042480469,
+      "eklenen": 46
+    }
+  ],
+  "yanlis_alarm_gurultu": {
+    "ort": 0.12054507337526206,
+    "min": 0.10377358490566038,
+    "max": 0.1289308176100629
+  },
+  "final_saldirgan": "gemma4:e4b",
+  "final_adet": 30,
+  "final_kacma_D0": 0.35555555555555557,
+  "final_kacma_D0_min": 0.26666666666666666,
+  "final_kacma_D0_max": 0.43333333333333335,
+  "final_kacma_son": 0.06666666666666667,
+  "ayar": {
+    "tur": 4,
+    "adet": 30
+  }
+}
