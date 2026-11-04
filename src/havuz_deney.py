@@ -2,7 +2,9 @@
 
 Çalıştırma (repo kökünden; GPU boş, Ollama kapalı):
     python -m src.havuz_deney
-    python -m src.havuz_deney --svm models/svm_e.joblib      # Esra'nın SVM'i gelince
+    python -m src.havuz_deney --svm models/svm_v1.joblib --sadece-svm
+        # E/H tekrar eğitilmez, sonuçları docs/havuz_deney_sonuc.json'dan okunur; sadece SVM aynı sınava girer.
+        # SVM, Esra'nın src/tahmin.py'si gibi çalıştırılır: maskele → decision_function > 0 = spam.
 
 Modeller:
     E : son model tarifi (936 mesaj)
@@ -44,7 +46,6 @@ from src.son_model import AYAR, ESIK, egit, veri_yukle
 D = Path("data/external")
 TOHUMLAR = [42, 43, 44]
 KRITER = {"dol_tolerans": 0.02, "ya_iyilesme": 0.02}       # ön kayıt
-GERCEK_ETIKET = {"1", "spam", "reklam", "dolandırıcılık"}
 
 # --- 1. RET kuralı (notebook 07/09 ile aynı): kural etiketli veride kuralın baktığı ifade kesilir ---
 NO = r"(?:\d{4}|\[TEL\])"
@@ -125,10 +126,53 @@ def ozet(liste):
     return {"ort": float(np.mean(liste)), "min": float(min(liste)), "max": float(max(liste))}
 
 
+# --- 3b. SVM: Esra'nın tahmin() yolu (src/tahmin.py) ile aynı: maskele → decision_function, > 0 = spam ---
+def svm_olc(yol, mesru, gemma):
+    from src.maskele import maskele
+    model = joblib.load(yol)
+    spam = lambda mesajlar: model.decision_function([maskele(m) for m in mesajlar]) > 0
+    return {"yanlis_alarm": float(spam(mesru).mean()), "yakalama": float(spam(gemma).mean())}
+
+
+# --- 3c. Sadece SVM: E/H yeniden eğitilmez, kayıtlı sonuç dosyasına SVM eklenir ---
+def sadece_svm(yol):
+    if not yol:
+        raise SystemExit("--sadece-svm için --svm <dosya> gerekli")
+    sonuc_yol = Path("docs/havuz_deney_sonuc.json")
+    sonuc = json.loads(sonuc_yol.read_text(encoding="utf-8"))
+    _, _, mesru, _, gemma = veri_hazirla()
+    assert len(mesru) == sonuc["sinav"]["mesru"] and len(gemma) == sonuc["sinav"]["gemma"], "sınav seti değişmiş"
+    sonuc["SVM"] = svm_olc(yol, mesru, gemma)
+    sonuc_yol.write_text(json.dumps(sonuc, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    n_m, n_g = len(mesru), len(gemma)
+    print(f"Sınav: {n_m} görülmemiş meşru + {n_g} gemma saldırısı (E/H ile aynı mesajlar)\n")
+    print(f"{'Model':<16}{'Yanlış alarm':<30}{'Gemma yakalama':<30}")
+    for ad in ["E", "H"]:
+        y_, k_ = sonuc[ad]["yanlis_alarm"], sonuc[ad]["yakalama"]
+        print(f"{ad + ' (XLM-R, 3 toh.)':<16}{y_['ort']:.1%} ({y_['min']:.1%}–{y_['max']:.1%}){'':<8}"
+              f"{k_['ort']:.1%} ({k_['min']:.1%}–{k_['max']:.1%})")
+    s = sonuc["SVM"]
+    print(f"{'SVM (tek)':<16}{s['yanlis_alarm']:.1%} ({round(s['yanlis_alarm'] * n_m)}/{n_m}){'':<16}"
+          f"{s['yakalama']:.1%} ({round(s['yakalama'] * n_g)}/{n_g})")
+
+    mlflow.set_tracking_uri("sqlite:///mlflow.db")
+    mlflow.set_experiment("havuz_deney")
+    with mlflow.start_run(run_name="SVM_v1"):
+        mlflow.log_params({"model": Path(yol).name, "sinav_mesru": n_m, "sinav_gemma": n_g})
+        mlflow.log_metrics({"SVM_yanlis_alarm": s["yanlis_alarm"], "SVM_yakalama": s["yakalama"]})
+    print(f"\n{sonuc_yol} güncellendi")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--svm", help="Esra'nın SVM E dosyası (.joblib), isteğe bağlı")
+    ap.add_argument("--sadece-svm", action="store_true", help="E/H'yi eğitme, kayıtlı sonuçlarla SVM'i ekle")
     a = ap.parse_args()
+
+    if a.sadece_svm:
+        sadece_svm(a.svm)
+        return
 
     # --- 4. Veri ---
     X_E, y_E, kaynak = veri_yukle()
@@ -147,11 +191,7 @@ def main():
     sH = uc_tohum("H", X_H, y_H, tok, mesru, gemma)
 
     # --- 6. SVM (isteğe bağlı, deterministik: tek koşu) ---
-    svm = None
-    if a.svm:
-        model = joblib.load(a.svm)
-        t = lambda m: np.array([str(v).lower() in GERCEK_ETIKET for v in model.predict(m)], dtype=float)
-        svm = {"yanlis_alarm": float(t(mesru).mean()), "yakalama": float(t(gemma).mean())}
+    svm = svm_olc(a.svm, mesru, gemma) if a.svm else None
 
     # --- 7. Tablo ---
     print(f"\n{'Model':<6}{'Yanlış alarm (' + str(len(mesru)) + ')':<26}{'Gemma yakalama (' + str(len(gemma)) + ')':<26}")

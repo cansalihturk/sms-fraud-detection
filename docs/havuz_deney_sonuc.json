@@ -53,7 +53,10 @@
     },
     "havuz_ek": 679
   },
-  "SVM": null,
+  "SVM": {
+    "yanlis_alarm": 0.07216494845360824,
+    "yakalama": 0.5833333333333334
+  },
   "kriter": {
     "dol_tolerans": 0.02,
     "ya_iyilesme": 0.02
