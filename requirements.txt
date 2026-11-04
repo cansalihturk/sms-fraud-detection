@@ -10,3 +10,4 @@ mlflow
 # Derin öğrenme (hafta 2): Keras 3, PyTorch altyapısıyla (TensorFlow Python 3.14'ü desteklemiyor)
 keras
 torch
+transformers
