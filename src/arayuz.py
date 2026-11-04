@@ -8,6 +8,7 @@ ORNEKLER = {
     "Sahte ödül": "Tebrikler! 50.000 TL ödül kazandınız, hemen tıklayın: bit.ly/abc",
     "Günlük sohbet": "Akşam yemeğe geliyor musun? Ararım seni",
     "Banka doğrulama kodu": "Garanti BBVA doğrulama kodunuz: 482913. Kimseyle paylaşmayın.",
+    "Reklam": "Sepette %50 indirim! Kampanya 3 gün sürecek. SMS iptal için RET yaz 3525'e gönder. MERSİS: [KART]",
 }
 
 st.set_page_config(page_title="SMS Dolandırıcılık Tespiti", page_icon="📱")
@@ -60,7 +61,10 @@ if st.button("Kontrol et"):
         st.error("Servis çalışmıyor. API'yi başlatıp tekrar dene.")
         st.stop()
     if sonuc["etiket"] == "spam":
-        renk, ikon, yazi = "#DC2626", "⚠️", "SPAM"
+        if sonuc["tur"] == "dolandırıcılık":
+            renk, ikon, yazi = "#DC2626", "🚨", "SPAM: DOLANDIRICILIK ŞÜPHESİ"
+        else:
+            renk, ikon, yazi = "#F59E0B", "⚠️", "SPAM: REKLAM"
     else:
         renk, ikon, yazi = "#16A34A", "✅", "MEŞRU"
     st.markdown(

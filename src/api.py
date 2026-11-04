@@ -1,7 +1,8 @@
 from fastapi import FastAPI   #API’yi kuran araç ve gelen verinin biçimini tarif eden araç
 from pydantic import BaseModel
 
-from src.tahmin import tahmin
+from src.kurallar import tur_bul
+from src.tahmin import acikla, tahmin
 
 app = FastAPI(title="SMS Dolandırıcılık Tespiti")
 
@@ -17,4 +18,7 @@ def ana_sayfa():
 
 @app.post("/tahmin")
 def tahmin_et(istek: Istek):
-    return tahmin(istek.mesaj)
+    sonuc = tahmin(istek.mesaj)
+    sonuc["aciklama"] = acikla(istek.mesaj)
+    sonuc["tur"] = tur_bul(istek.mesaj) if sonuc["etiket"] == "spam" else None
+    return sonuc
