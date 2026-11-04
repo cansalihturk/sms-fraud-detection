@@ -147,3 +147,38 @@ A = sadece tr_train ile eğitim. B = leave-one-sender-out (tr_train + diğer gö
 - Kalan yanlış alarmların çoğu eşiğe yakın (0.54-0.69). İnatçı olanlar kamu bilgilendirmeleri (AFAD, TTNET, Sağlık Bakanlığı) ve uygulama tanıtımı (Turkcell, 0.99).
 - Etiket önerileri (düzeltme listesine, birlikte onay): 30 ("0850 250 6702", metinden anlaşılamaz → belirsiz?), 63 (Yurtiçi şubede bekliyor: reklam mı dolandırıcılık mı?), 23 (Turkcell uygulama tanıtımı: meşru mu reklam mı?).
 - Tahminler: `data/external/xlmr_zor_tahmin.csv` (repoya girmez).
+- **Son model (zor set ölçütü):** XLM-R, eğitim = tr_train + zor set (LOSO, sınav göndericisi hariç) + sentetik v2/v3 + Salih'in 58 kurumsal mesajı (deney E). Ölçüt sonuçtan önce konuldu: havuz eklenmiş F, dolandırıcılıkta 10/10 ve yanlış alarmda ≤6 olsaydı seçilecekti. F 9/10, 5/67 → E seçildi (fark gürültü seviyesinde, basit olan tercih edildi).
+- **Sentetik veri:** v2/v3 kullanılır (96 mesaj: 56 kurumsal meşru + 40 kurum taklidi dolandırıcılık). v1 kullanılmaz ([LINK] kısayolu: sahte %93 / meşru %15 linkli, yanlış alarmı 41 → 48 artırdı). Sentetik sadece eğitimde.
+- **Salih'in SMS havuzu:** iPhone (Mac chat.db) → 2108 kurumsal SMS → maskeleme (`maskele` + ad, plaka, kart son 4, abone no, B-kodu kuralları; her adım kontrol edildi) → 1490 tekrarsız. **Sadece Salih'in bilgisayarında kalır, paylaşılmaz** (maskeli halinde bile bakiye, tutar gibi kişisel bilgiler var). Son modelde kullanılmıyor, deney olarak raporlanır.
+- **Kademeli kural etiketleme (weak supervision):** ret/iptal seçeneği → reklam; yoksa reklam kelimesi → çekimser (kullanılmaz); ikisi de yoksa → meşru. Esra'nın insan etiketli 121 mesajında: meşru 52/54, reklam 40/41, %22 çekimser. Havuzda rastgele 30 kontrol: 28 doğru, 1 sınırda, 1 boş mesaj.
+- **Kural etiketli veri eğitime girerken kuralın baktığı özellik kesilir:** havuzda ret/iptal ifadesi mesajdan çıkarılır. Yoksa model kuralı öğrenir (bkz. Sonuçlar, Gün 8).
+- **Gönderici kodu (B001, B016...):** Salih'in SMS'lerinde var, Esra'nınkilerde yok. Kaynak sızıntısı olmasın diye silinir.
+- Zor set deneyleri MLflow'da ayrı deney grubunda: `tr_zor`.
+### Gün 8: Zor set deneyleri, XLM-R (Salih)
+Sınav: `zor_gercek_hepsi.csv` v2, 131 insan etiketli gerçek kurumsal mesaj (meşru 67, reklam 54, dolandırıcılık 10), 58 gönderici grubu (büyük harfe çevrilmiş). Eşik 0.5, bu sete bakılarak ayarlanmadı. tr_test'e dokunulmadı. LOSO = leave-one-sender-out: her turda bir gönderici sınav, o göndericinin mesajları (zor set, Salih'in verisi, havuz) eğitimden çıkarılır.
+
+| Deney | Eğitim | Yanlış alarm | Spam yakalama | Dolandırıcılık | P | R | F1 |
+|---|---|---|---|---|---|---|---|
+| A | tr_train | 41/67 | 59/64 | 5/10 | 0.590 | 0.922 | 0.720 |
+| C1 | + sentetik v1 | 48/67 | 63/64 | 9/10 | 0.568 | 0.984 | 0.720 |
+| C2 | + sentetik v2/v3 | 39/67 | 63/64 | 9/10 | 0.618 | 0.984 | 0.759 |
+| B | + zor set (LOSO) | 6/67 | 58/64 | 5/10 | 0.906 | 0.906 | 0.906 |
+| D | + zor set (LOSO) + sentetik v2/v3 | 10/67 | 62/64 | 9/10 | 0.861 | 0.969 | 0.912 |
+| **E** | **+ zor set (LOSO) + sentetik v2/v3 + Salih 58** | **6/67** | **63/64** | **10/10** | 0.913 | 0.984 | **0.947** |
+| G_tum | sentetik v2/v3 + havuz (1287, tekrarlı) | 2/67 | 50/64 | 2/10 | 0.962 | 0.781 | 0.862 |
+| G_sablon | sentetik v2/v3 + havuz (842, şablon tekrarsız) | 2/67 | 52/64 | 2/10 | 0.963 | 0.812 | 0.881 |
+| G_40 | sentetik v2/v3 + havuz (738, göndericide ≤40) | 3/67 | 54/64 | 4/10 | 0.947 | 0.844 | 0.893 |
+| G_sablon_retsiz | sentetik v2/v3 + havuz (şablon, ret kesildi) | 4/67 | 58/64 | 7/10 | 0.935 | 0.906 | 0.921 |
+| G_40_retsiz | sentetik v2/v3 + havuz (≤40, ret kesildi) | 8/67 | 59/64 | 7/10 | 0.881 | 0.922 | 0.901 |
+| F | E + havuz (şablon, ret kesildi) | 5/67 | 60/64 | 9/10 | 0.923 | 0.938 | 0.930 |
+
+G deneylerinde zor setle ortak göndericiler havuzdan çıkarıldı; zor setten hiçbir mesaj eğitimde yok.
+
+**Bulgular**
+- **Her kaynak farklı bir işe yarıyor:** gerçek kurumsal mesaj yanlış alarmı çözüyor (A→B: 41 → 6), sentetik dolandırıcılığı çözüyor (A→C2: 5 → 9), Salih'in 58 mesajı ikisini dengeliyor (D→E: yanlış alarm 10 → 6, dolandırıcılık 9 → 10).
+- **Sentetik veri kalitesi:** aynı LLM, aynı sayıda mesaj; v1'deki [LINK] dengesizliği yanlış alarmı 9 artırdı (C1 vs C2). Sentetik verinin nasıl üretildiği, üretilip üretilmediğinden önemli.
+- **Otomatik etiket tuzağı:** kural etiketli havuz yanlış alarmı neredeyse sıfırladı (2/67) ama dolandırıcılığı 9 → 2 düşürdü. Model içeriği değil etiketleme kuralını öğrendi ("ret ifadesi yok → meşru"); dolandırıcılar ret ifadesi koymadığı için hepsine meşru dedi. Havuz büyüdükçe kötüleşti.
+- **Düzeltme:** havuzda ret ifadesi kesilince dolandırıcılık 2 → 7, yanlış alarm 2 → 4, F1 0.881 → 0.921. Zor setten hiçbir mesaj görmeden (G_sablon_retsiz), zor setle eğitilen B'yi (0.906) geçti: tek kişinin SMS kutusu + doğrulanmış kural, ölçeklenebilir bir veri kaynağı.
+- **Fazla veri:** şablon tekrarı atılmış sınırsız havuz (842) > göndericide ≤40 sınırlı havuz (738). Tekrarlar atıldıktan sonra daha fazla veri daha iyi.
+- **Son model E:** F (E + havuz) ile farkı tek yanlış alarm ve tek dolandırıcılık mesajı, F1 farkı 1.7 puan (gürültü). Önceden konulan ölçüte göre E.
+- **Sınırlar:** zor sette 10 dolandırıcılık var, tek mesaj 10 puan oynatıyor. Havuz tek kişinin gelen kutusu (bankaları, operatörü). Salih'in 58 mesajının etiketleri Claude önerisi, Salih tek tek kontrol etti.
