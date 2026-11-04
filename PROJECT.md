@@ -238,3 +238,22 @@ Saldırgan yerel LLM (Ollama) dolandırıcılık SMS'i yazar, savunmacı (E tari
 - **Ders:** final seti bir kez üretilip sabitlenir (`dongu_v3.py` artık `final_mesajlar.csv`'yi kaydedip yeniden kullanıyor) ve eşik göreli konur ("D0'a göre en az X puan düşüş").
 - Tek tohumlu tur ölçümleri oynak (v3 tur 2: 18/156, sonra 6/156). Aynı veri ve aynı tohumla bile GPU'da sonuç birkaç mesaj oynayabiliyor. Yorum sadece 3 tohumlu bantlardan yapılır.
 - **Sınırlar:** turda 30 saldırı (1 mesaj = 3.3 puan); saldırganlar 8-9B yerel modeller; yanlış alarm tek kişinin gelen kutusunda ölçüldü. Döngü modelleri son model değil; son model E.
+
+### Gün 9: Havuz deneyi, E ve H (`python -m src.havuz_deney`, Salih)
+Soru: Salih'in SMS havuzu son modeli iyileştirir mi? F (E + havuz) zor sette eşit çıkmıştı, ama zor setteki 10 dolandırıcılık mesajı (1 mesaj = 10 puan) farkı görecek kadar hassas değil. Bu yüzden havuzun asıl iddia ettiği yerde, gerçek kullanım koşulunda ölçüldü.
+
+- **E:** son model tarifi (936). **H:** E + havuz 679 (reklam 517, meşru 162; şablon tekrarsız, RET kesilmiş), ölçüm göndericileri tamamen hariç (1615). İkisi de üç tohum (42/43/44).
+- **Sınav (iki model de hiç görmedi):** (1) yanlış alarm: dongu_v3 bölmesinin ölçüm yarısındaki meşrular; Salih'in 58'i ve zor setle ortak 13 gönderici de çıkarıldı → 97 mesaj, 28 tamamen görülmemiş gönderici (1 mesaj ≈ 1 puan). (2) dolandırıcılık: gemma4:e4b final saldırıları (döngü v2 + v3, 60 mesaj; geri bildirimsiz üretildi, hiçbir modele göre şekillenmedi). Tur saldırıları (qwen/aya) kullanılmadı: XLM-R'ı geçmek için seçildiler, SVM'e haksız avantaj olurdu.
+- **Ön kayıt (koşudan önce kodda):** H, E'nin yerine ancak dolandırıcılık yakalamada en fazla 2 puan geride VE yanlış alarmda en az 2 puan iyi ve bantlar örtüşmüyorsa geçer.
+
+| Model | Yanlış alarm (97, 3 tohum) | Gemma yakalama (60, 3 tohum) |
+|---|---|---|
+| E | %12.4 (9.3 – 14.4) | **%66.1** (51.7 – 78.3) |
+| H (E + havuz) | **%7.9** (7.2 – 9.3) | %41.1 (36.7 – 46.7) |
+
+- **Karar: RED**, son model E kalır. Dolandırıcılık 25 puan düştü; yanlış alarm 4.5 puan iyileşti ama bantlar değiyor (H max 9.3 = E min 9.3).
+- **Bulgu:** havuzdaki meşrular gerçek banka/operatör bildirimleri. Model "resmi kurum dili → meşru" öğrendi; gemma'nın saldırıları tam bu dili taklit ediyor. Daha çok meşru veri modeli kurumsal taklide karşı saflaştırdı. Gün 8'deki G bulgusuyla (kural etiketli havuz: yanlış alarm ↓, dolandırıcılık 9 → 2) aynı yön; iki ayrı deney, iki ayrı sınav.
+- **Ders:** veri miktarı değil, verinin ne öğrettiği önemli. Modelin eksiği meşru örnek değil, kurumsal dili taklit eden dolandırıcılık örneği. Havuz ancak dolandırıcılık verisiyle dengelenirse işe yarar (döngü v3'ün meşru karşı ağırlık + saldırı tasarımı bunu yapıyor).
+- **Son modelin gerçek kullanıma yakın sınırları (sunumda söylenir):** hiç görülmemiş gerçek meşru kurumsal SMS'lerin ~%12'sine alarm (tr_test'te %3); görülmemiş bir LLM'in yazdığı dolandırıcılığın ~%66'sını yakalıyor (üçte birini kaçırıyor). Botun "emin değilim" bandı ve LLM açıklaması bu yüzden gerekli.
+- **Sınırlar:** yanlış alarm tek kişinin gelen kutusu; dolandırıcılık LLM yazımı (gerçek dolandırıcılık değil); tohumlar arası oynama büyük (E yakalama 52–78).
+- SVM E aynı sınava `--svm` ile girecek; karar kriterine girmez, yan sütun olarak raporlanır.
