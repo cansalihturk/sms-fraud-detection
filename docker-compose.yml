@@ -1,0 +1,17 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models
+
+  arayuz:
+    build: .
+    command: ["streamlit", "run", "src/arayuz.py", "--server.port=8501", "--server.address=0.0.0.0"]
+    ports:
+      - "8501:8501"
+    environment:
+      - API_ADRESI=http://api:8000/tahmin
+    depends_on:
+      - api

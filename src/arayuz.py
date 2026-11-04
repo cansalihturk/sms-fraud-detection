@@ -1,7 +1,8 @@
+import os
 import requests
 import streamlit as st
 
-API_ADRESI = "http://127.0.0.1:8000/tahmin"
+API_ADRESI = os.environ.get("API_ADRESI", "http://127.0.0.1:8000/tahmin") #“API_ADRESI diye bir ayar verilmişse onu kullan, verilmemişse yanındaki eski adresi kullan.”
 
 ORNEKLER = {
     "(boş)": "",
