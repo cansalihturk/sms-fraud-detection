@@ -6,6 +6,7 @@ kelime bozma ve prompt injection'a karşı test etmek. İki ek parça:
 (1) saldırgan LLM ile dedektörü turlar halinde eğiten kırmızı/mavi takım
 döngüsü, (2) şüpheli SMS'i analiz eden Telegram botu. Süre: 2 hafta.
 Sınıflar: dolandırıcılık / reklam (spam) / meşru.
+> **Kapsam notu (5 Kasım):** LLM açıklaması ve prompt injection testi kapsam dışı bırakıldı. Açıklama kelime etkisiyle yapılıyor (`tahmin.acikla`). Kelime bozma testi yapıldı. Bkz. Durum.
 
 ## Veri kaynakları
 - TR: https://huggingface.co/datasets/akuysal/turkishSMS-ds
@@ -37,19 +38,21 @@ docs/            etiket rehberi, Model Card, risk kaydı
 | Birlikte | Etiket rehberi, gün 7 tablosu, sunum, demo | |
 
 ## Kararlar
-- LLM karar vermez, sadece açıklama yazar.
+- LLM karar vermez, sadece açıklama yazar. (Kapsam dışı kaldı: sistemde LLM yok, açıklama kelime etkisiyle.)
 - Dengesizlik için önce class weight; SMOTE sadece eğitim kısmında küçük deney.
 - Döngünün final testi, hiç görmediği ikinci bir saldırgan ile yapılır.
 - Gerçek test seti temiz tutulur; saldırgan ve sentetik mesajlar ona karışmaz.
 - Her turda yanlış alarm da ölçülür.
 - Döngü saldırganları yerel (Ollama): qwen3.5:9b, aya-expanse:8b; final saldırgan gemma4:e4b, döngüde hiç kullanılmaz. Yanlış alarm, eğitime girmeyen gerçek meşru kurumsal mesajlarda ölçülür; kıyas 3 tohumlu gürültü bandına göre yapılır.
+- Sistemde kullanılan model SVM E (`models/svm_v1.joblib`); XLM-R E araştırma modeli (bkz. Gün 9, model seçimi).
+- Kaydedilmiş model, kaydedildiği scikit-learn sürümüyle çalıştırılır (svm_v1: 1.6.1); Docker'da sürüm sabitlendi.
 - Telegram botu gelen mesajları kaydetmez.
 - Ana deney ikili: spam (reklam + dolandırıcılık) / meşru. Gerçek Türkçe dolandırıcılık çok az (7), 3 sınıflı ölçüm anlamsız olurdu.
 - Dolandırıcılık ayrı ek deney: kural motoru + sentetik/çevrilmiş örnekler (sadece train'e), gerçek 7 mesajla test edilir.
 - Bölme: grup duyarlı (benzerlik eşiği 0.60), %85 train / %15 test, test kilitli. Model seçimi train içinde 5 katlı grup duyarlı CV ile (`fold` sütunu).
 - Canlı tahmin sırası: `maskele` → model. `temizle` pipeline'ın içinde, ayrıca çağrılmaz. Maskelenmemiş mesaj modele verilmez (eğitimde gerçek link/numara hiç görülmedi).
 - Kaydedilen modeller `src.temizle`'yi adresiyle taşır; yüklendikleri yerde `src` import edilebilir olmalı (API repo kökünden çalışır).
-- Öneri (Esra ile karar verilecek): bot, karar skoru sıfıra yakınsa (|skor| < 0.3) "emin değilim, dikkatli ol" der.
+- "Emin değilim" bandı (|skor| < 0.3) sunumdan sonraya bırakıldı: eşik SVM skorunda ölçülmedi, ölçülmeden eklenirse demonun davranışı değişir. Eklenmeden önce eşik train içinde (CV) seçilecek.
 - Derin öğrenme: Keras 3, PyTorch altyapısıyla (`KERAS_BACKEND=torch`). TensorFlow Python 3.14'ü desteklemiyor (en son 2.21, Python 3.10-3.13). Keras kodu aynı kalır.
 - Deney takibi: MLflow, `sqlite:///mlflow.db` (repo kökü, gitignore'da), deney adı `tr_ikili`. Parametreler elle yazılmaz, modelden (`get_params`) ya da tek bir ayar sözlüğünden okunur.
 - GPU: `pip install torch --index-url https://download.pytorch.org/whl/cu130` (Python 3.14, sürücü CUDA 13.0+). PyPI'daki Windows torch paketi sadece CPU'lu. Transformer modelleri için `transformers`.
@@ -256,4 +259,60 @@ Soru: Salih'in SMS havuzu son modeli iyileştirir mi? F (E + havuz) zor sette e�
 - **Ders:** veri miktarı değil, verinin ne öğrettiği önemli. Modelin eksiği meşru örnek değil, kurumsal dili taklit eden dolandırıcılık örneği. Havuz ancak dolandırıcılık verisiyle dengelenirse işe yarar (döngü v3'ün meşru karşı ağırlık + saldırı tasarımı bunu yapıyor).
 - **Son modelin gerçek kullanıma yakın sınırları (sunumda söylenir):** hiç görülmemiş gerçek meşru kurumsal SMS'lerin ~%12'sine alarm (tr_test'te %3); görülmemiş bir LLM'in yazdığı dolandırıcılığın ~%66'sını yakalıyor (üçte birini kaçırıyor). Botun "emin değilim" bandı ve LLM açıklaması bu yüzden gerekli.
 - **Sınırlar:** yanlış alarm tek kişinin gelen kutusu; dolandırıcılık LLM yazımı (gerçek dolandırıcılık değil); tohumlar arası oynama büyük (E yakalama 52–78).
-- SVM E aynı sınava `--svm` ile girecek; karar kriterine girmez, yan sütun olarak raporlanır.
+- SVM E aynı sınava girdi (`--svm models/svm_v1.joblib --sadece-svm`): yanlış alarm 7/97 (%7.2), gemma yakalama 35/60 (%58.3). H kararına girmez; model seçimi aşağıda.
+
+### Gün 9: Model seçimi, SVM E ve XLM-R E (Salih, Esra)
+İki model de E verisiyle eğitildi (tr_train + zor set + sentetik v2/v3 + Salih'in 58'i). Seçim kriteri sonuçlardan önce konuldu: (1) dolandırıcılık yakalama, (2) yanlış alarm, (3) F1 farkı 2 puandan küçükse basit olan (SVM).
+
+**Zor set, LOSO (131 mesaj, gruplama v2):**
+
+| Model | Yanlış alarm | Spam yakalama | Dolandırıcılık | F1 |
+|---|---|---|---|---|
+| XLM-R E_v2 | 7/67 | 63/64 | 10/10 | 0.940 |
+| SVM E (Esra) | 6/67 | 60/64 | 10/10 | 0.923 |
+
+Dolandırıcılık berabere, yanlış alarm farkı 1 mesaj, F1 farkı 1.7 puan (< 2) → **SVM**.
+
+- Hatalar tamamen farklı mesajlarda. XLM-R'ın 7 yanlış alarmı: Afad, İçişleri ×2 (dolandırıcılığı anlatan uyarılar, dolandırıcılık kelimeleriyle dolu), BADIWORKS, Turkcell 6968, KUMTEL, NVIRANDEVU. SVM'in 6 yanlış alarmının 3'ü KOLAYGELSIN kargo bildirimi. Ortak tek zayıflık yumuşak dilli eğitim reklamı (kaçan spam). Hataları bu kadar farklı iki modelin birleşimi (ensemble) gelecek iş; zor sette denenirse set ayar için kullanılmış olur.
+
+**Görülmemiş gerçek kullanım sınavı (havuz deneyiyle aynı 97 meşru + 60 gemma saldırısı).** Ön kayıtlı kural (koşudan önce): SVM'in yakalaması E'nin en kötü tohumunun altındaysa XLM-R; yakalama E bandında ya da üstünde ve yanlış alarm E'nin en kötü tohumundan kötü değilse SVM.
+
+| Model | Yanlış alarm (97) | Gemma yakalama (60) |
+|---|---|---|
+| XLM-R E (3 tohum) | %12.4 (9.3 – 14.4) | %66.1 (51.7 – 78.3) |
+| SVM E (`svm_v1.joblib`, tek, deterministik) | **%7.2 (7/97)** | %58.3 (35/60) |
+
+SVM yakalamada E bandının içinde (ortalamaya göre ~8 puan, ~5 mesaj geride; XLM-R'ın kendi tohum oynamasının içinde), yanlış alarmda E'nin en iyi tohumundan da iyi → **SVM**. İki bağımsız sınav aynı yönü gösteriyor.
+
+- **Karar:** sistemde (API, arayüz, bot, Docker) **SVM E** (`models/svm_v1.joblib`, Esra, 935 mesaj) kullanılır. Ek gerekçeler: küçük, CPU'da milisaniyeler, her eğitimde aynı model (XLM-R'da tohuma göre yakalama 52–78 arası oynuyor), açıklanabilir (hangi harf parçasına baktığı görülür).
+- **XLM-R E** araştırma modeli olarak raporlanır: zor set serisi (A → E), döngü deneyleri, havuz deneyi.
+- **Sürüm uyumu:** `svm_v1.joblib` scikit-learn 1.6.1 ile kaydedildi; 1.9.1'de açılınca `InconsistentVersionWarning` verdi (bu ölçümde çalıştı). Docker'da sürüm sabitlenir ya da model imajdaki sürümle yeniden kaydedilir.
+- **Gerçek sınırlar (sunumda söylenir):** SVM, görülmemiş bir LLM'in yazdığı dolandırıcılığın ~%40'ını kaçırıyor; gerçek meşru kurumsal SMS'lerin ~%7'sine alarm veriyor. Bu yüzden bot tek başına modele güvenmez: kural motoru, "emin değilim" bandı ve LLM açıklaması birlikte çalışır.
+- **Kilitli tr_test, tek bakış (Esra):** SVM E F1 **0.972**, yanlış alarm 1/62, kaçan spam 2/54 (XLM-R E: 0.953, 2/62, 3/54). Sonuca bakıp ayar değiştirilmedi.
+
+## Durum (5 Kasım, sunum öncesi)
+Görev dağılımındaki her iş için: yapıldı mı, nerede. Yapılmayanlar sessizce kalmasın diye yazıldı.
+
+| İş | Durum | Nerede / not |
+|---|---|---|
+| Türkçe veri, maskeleme, etiketleme | ✅ | `src/maskele.py`, `docs/etiket-rehberi.md`, `docs/zor-test.md` |
+| NB, SVM, LR (kelime / harf) | ✅ | `src/baseline.py`, Gün 5 |
+| MLP, BiLSTM, XLM-R | ✅ | Gün 6–8, `src/zor_deney.py`, `src/son_model.py` |
+| Zor set deneyleri (A → E) | ✅ | Gün 8, `docs/zor-test.md` |
+| Saldırgan / savunmacı döngüsü | ✅ | Gün 9, `src/dongu.py`, `src/dongu_v3.py` |
+| Model seçimi (SVM) | ✅ | Gün 9, model seçimi |
+| Kural motoru (tür) | ✅ | `src/kurallar.py`, `tests/test_kurallar.py` |
+| Kelime bozma testi | ✅ | `docs/zor-test.md` 9.3 |
+| FastAPI, Streamlit, Telegram botu | ✅ | `src/api.py`, `src/arayuz.py`, `src/telegram_bot.py` |
+| Docker, CI | ✅ | `Dockerfile`, `docker-compose.yml`, `.github/workflows/ci.yml` |
+| MLflow | ✅ | `tr_ikili`, `tr_zor`, `dongu`, `havuz_deney` (yerel, repoda değil) |
+| README, mimari şeması | ✅ | `README.md` (şema Mermaid ile README'de) |
+| Model Card, Risk Kaydı | ⏳ | Esra'da hazır, `docs/`'a eklenecek |
+| Nihai SVM'in eğitim kodu | ⏳ | `svm_v1.joblib` repoda üretilemiyor; eğitim script'i / notebook'u eklenecek |
+| XGBoost hibrit, BERTurk | ⚠️ | Notebook'lar var (`xgboost.ipynb`, `berturk-xlm-r.ipynb`), sonuçları bu dosyada yok |
+| LLM açıklaması (Ollama) | 🚫 kapsam dışı | Açıklama kelime etkisiyle (`tahmin.acikla`: kelimeyi çıkar, skor ne kadar değişti). Ollama döngüde saldırgan olarak kullanıldı. |
+| Prompt injection testi | 🚫 kapsam dışı | Sistemde LLM olmadığı için saldırı yüzeyi yok. LLM açıklaması eklenirse ilk yapılacak test. |
+| SHAP | ❌ | Yerine kelime çıkarma açıklaması (aynı fikir: kararı hangi parça değiştiriyor). |
+| "Emin değilim" bandı | ⏳ sunumdan sonra | Eşik SVM skorunda ölçülmedi; ölçülmeden demoya eklenmez. |
+| DVC, Evidently | ❌ | Süreye sığmadı. Veri sürümü dosya adıyla (v1/v2/v3) ve PROJECT.md'deki notlarla takip edildi. |
+| İngilizce | ⚠️ | UCI'da F1 0.344: model yalnızca Türkçe için doğrulandı. |
