@@ -11,6 +11,8 @@ Gerçek telefon kutularından toplanan kurumsal mesajlarla bir "zor test" kurduk
 2. Gerçek kurumsal mesajlar eğitime girince, modelin hiç görmediği göndericilerde
    sonuç düzeliyor mu?
 
+> **Güncelleme (5 Kasım):** 1-8. bölümler 3 Kasım durumunu anlatır (133 mesaj, Model A ve B). Zor set sonradan yeniden temizlendi (131 mesaj), tarif genişledi, XLM-R ölçüldü ve kilitli test açıldı. Güncel sonuçlar **9. bölümde**.
+
 ## 2. Veri
 
 Zor test, iki gönüllünün kendi telefon kutusundan dışa aktarılan **kurumsal ve
@@ -217,3 +219,50 @@ gerekir (bkz. 8. bölüm).
 4. Hiç görülmemiş taze mesajlarla iyileşmeyi doğrulamak.
 5. Final modeli tüm gerçek veriyle eğitmek; `tr_test.csv` ile tek seferlik final
    test.
+
+## 9. Güncel sonuçlar (5 Kasım)
+
+Zor set sonradan tekrar temizlendi: **131 etiketli mesaj** (67 meşru, 54 reklam, 10 dolandırıcılık). Ölçüm yine göndericiye göre "birini dışarıda bırak" (LOSO) ile yapıldı.
+
+### 9.1 SVM, A'dan E'ye
+
+| Deney | Eğitimde ne var | Spam F1 | Dolandırıcılık yakalama |
+|---|---|---|---|
+| A | Yalnızca `tr_train` | 0.76 | 8/10 |
+| B | A + gerçek mesajlar (LOSO) | 0.87 | 9/10 |
+| C | A + sentetik | 0.81 | 9/10 |
+| D | A + gerçek + sentetik (LOSO) | 0.89 | 10/10 |
+| **E** | D + Salih'in 58 mesajı (nihai tarif) | **0.923** | **10/10** |
+
+E'nin ayrıntısı: yanlış alarm **6/67**, yakalanan spam **60/64**. Küçük farklar (±0.02) gürültüdür. Salih'in 58 mesajı önce sınav olarak kullanıldı (yanlış alarm 12/36 → 7/36), sonra eğitime katıldı; göndericileri zor setle örtüşebileceği için E biraz iyimser olabilir.
+
+### 9.2 Nihai model: SVM
+
+| | SVM (E) | XLM-R E (3 tohum) |
+|---|---|---|
+| Zor set F1 | 0.923 | 0.947 |
+| Yanlış alarm (97 yeni meşru mesaj) | %7.2 (7/97) | %12.4 |
+| Saldırı yakalama (60 LLM saldırısı) | %58 (35/60) | %66 (52-78) |
+
+Önceden yazılmış kural: dolandırıcılıkta fark XLM-R'ın bandının içindeyse yanlış alarmı az olan kazanır. Karar: **SVM**.
+
+### 9.3 Diğer ölçümler
+
+| Ölçüm | Sonuç |
+|---|---|
+| Kilitli `tr_test` (116 mesaj, tek bakış) | F1 0.972, yanlış alarm 1/62, kaçan spam 2/54 |
+| İngilizce UCI (5574 mesaj) | F1 0.344, spam yakalama 161/747; model yalnızca Türkçe için doğrulandı |
+| Kaggle Türkçe SMS | Bağımsız değil: 765 mesajın 669'u bizim verimizde |
+| Kural motoru türü (zor set, 64 spam) | Dolandırıcılık 4/10 → 9/10, reklam 54/54 (kurallar bu mesajlar görülerek genişletildi, iyimser) |
+| Kelime bozma (zor set, yalnızca sınav bozuldu) | Aksansız 61/64, leet 59/64, harf tekrarı 59/64 yakalama (normal 60/64) |
+| Harf ve kelime tabanlı SVM | Yakalama benzer; harf tabanlıda yanlış alarm daha az (6 / 6 / 9 / 18, kelimede 11 / 16 / 15 / 18) |
+
+### 9.4 Güncellenen sınırlamalar
+
+- Bu belgenin 8. bölümündeki "tek model" notu artık geçerli değil: XLM-R ölçüldü (9.2).
+- 5. bölümdeki "tr_test hiç kullanılmadı" notu artık geçerli değil: nihai SVM ile **bir kez** açıldı. Sonuca bakıp ayar değiştirilmedi.
+- Dolandırıcılıkta yalnızca 10 gerçek mesaj var; 9/10 ile 10/10 arası tek mesajdır.
+- Zor setin etiketleri tek kişiden (Esra), Salih'in 58 mesajı ise Salih'ten; kör denetim yapılmadı.
+- Kural motorunun tür doğruluğu zor sette ölçüldü ama kurallar o mesajlara bakılarak yazıldığı için bağımsız değil.
+
+Ayrıntılar: Model Card ve Risk Kaydı belgeleri.
