@@ -240,7 +240,8 @@ E'nin ayrıntısı: yanlış alarm **6/67**, yakalanan spam **60/64**. Küçük 
 
 | | SVM (E) | XLM-R E (3 tohum) |
 |---|---|---|
-| Zor set F1 | 0.923 | 0.947 |
+| Zor set F1 | 0.923 | 0.940 (E_v2) |
+| Kilitli tr_test F1 | 0.972 (yanlış alarm 1/62, kaçan spam 2/54) | 0.953 (2/62, 3/54) |
 | Yanlış alarm (97 yeni meşru mesaj) | %7.2 (7/97) | %12.4 |
 | Saldırı yakalama (60 LLM saldırısı) | %58 (35/60) | %66 (52-78) |
 
@@ -266,3 +267,4 @@ E'nin ayrıntısı: yanlış alarm **6/67**, yakalanan spam **60/64**. Küçük 
 - Kural motorunun tür doğruluğu zor sette ölçüldü ama kurallar o mesajlara bakılarak yazıldığı için bağımsız değil.
 
 Ayrıntılar: Model Card ve Risk Kaydı belgeleri.
+- tr_test, bundan önce Salih'in Gün 5-6 tablolarında aday modeller için de açılmıştı (PROJECT.md): "dokunulmamış" değil, ayar yapılmadan model başına bir bakış.
